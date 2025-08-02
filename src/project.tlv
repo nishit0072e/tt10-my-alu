@@ -28,36 +28,50 @@ module tt_um_nishit0072e_counter (
 wire reset = ! rst_n;
    
 
-   logic [3:0] cnt;
-   always_ff @(posedge clk) begin
-      cnt <= reset ? 4'b0 : cnt + 1;
-   end
-   //7-segment decoder for output
-   assign uo_out[7:0] = 
-      (cnt == 4'h0) ? 8'b00111111 :
-      (cnt == 4'h1) ? 8'b00000110 :
-      (cnt == 4'h2) ? 8'b01011011 :
-      (cnt == 4'h3) ? 8'b01001111 :
-      (cnt == 4'h4) ? 8'b01100110 :
-      (cnt == 4'h5) ? 8'b01101101 :
-      (cnt == 4'h6) ? 8'b01111101 :
-      (cnt == 4'h7) ? 8'b00000111 :
-      (cnt == 4'h8) ? 8'b01111111 :
-      (cnt == 4'h9) ? 8'b01101111 :
-      (cnt == 4'hA) ? 8'b01110111 :
-      (cnt == 4'hB) ? 8'b01111100 :
-      (cnt == 4'hC) ? 8'b00111001 :
-      (cnt == 4'hD) ? 8'b01011110 :
-      (cnt == 4'hE) ? 8'b01111001 :
-      					 8'b01110001 ;
+logic [3:0] a, b, s, f;
+    
+    // 2. Connect module inputs to the logic unit signals
+    // Input 'a' from switches 0-3
+    assign a = ui_in[3:0];
+    // Input 'b' from switches 4-7
+    assign b = ui_in[7:4];
+    // Function select 's' from bidirectional pins 0-3
+    assign s = uio_in[3:0];
 
- 
-   
-   // List all unused inputs to prevent warnings
-   wire _unused = &{ena, clk, rst_n, 1'b0};
+    // The logic unit implementation
+    always_comb begin
+        // Default assignment to prevent latches
+        f = 'x; 
+
+        case (s)
+            4'h0: f = ~a;         // NOT A
+            4'h1: f = ~(a | b);   // A NOR B
+            4'h2: f = ~a & b;
+            4'h3: f = '0;         // Logic 0
+            4'h4: f = ~(a & b);   // A NAND B
+            4'h5: f = ~b;         // NOT B
+            4'h6: f = a ^ b;      // A XOR B
+            4'h7: f = a & ~b;
+            4'h8: f = ~a | b;
+            4'h9: f = ~(a ^ b);   // A XNOR B
+            4'hA: f = b;          // Pass B
+            4'hB: f = a & b;      // A AND B
+            4'hC: f = '1;         // Logic 1
+            4'hD: f = a | ~b;
+            4'hE: f = a | b;      // A OR B
+            4'hF: f = a;          // Pass A
+            default: f = 'x;
+        endcase
+    end
+    
+    // 3. Connect the logic unit's result 'f' to the module outputs
+    // Result 'f' drives LEDs 0-3. LEDs 4-7 are off.
+    assign uo_out = {4'b0000, f};
+
+
   // All output pins must be assigned. If not used, assign to 0.
  // assign uo_out  = ui_in;  // Example: ou_out is ui_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+  //assign uio_out = 0;
+  //assign uio_oe  = 0;
 
 endmodule
